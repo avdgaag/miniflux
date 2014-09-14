@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>miniflux.js</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>miniflux.js</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <p>Miniflux.js is a hobby project implementation of the Facebook’s Flux
+architecture. It provides the basic mechanism for a one-way event system
+where views trigger actions through the dispatcher where they propagate
+through various stores which then update the views.</p>
+<h2 id="brief-example">Brief example</h2>
+<p>Create a dispatcher for the application to handle your events:</p>
+<pre><code><span class="hljs-keyword">var</span> AppDispatcher = Miniflux.Dispatcher.extend({
+  handleViewAction: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(payload)</span> </span>{
+    <span class="hljs-keyword">this</span>.dispatch({
+      source: <span class="hljs-string">'VIEW'</span>,
+      action: payload
+    });
+  }
+});
+<span class="hljs-keyword">var</span> dispatcher = <span class="hljs-keyword">new</span> AppDispatcher();
+</code></pre><p>Create a store to track your application state:</p>
+<pre><code><span class="hljs-keyword">var</span> TodoStore = Miniflux.Store.extend({
+  initialize: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.items = [];
+  },
+
+  onAddTodo: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(payload)</span> </span>{
+    <span class="hljs-keyword">this</span>.items.push(payload.title);
+    <span class="hljs-comment">// update view somehow</span>
+  }
+});
+<span class="hljs-keyword">var</span> todoStore = <span class="hljs-keyword">new</span> TodoStore({ dispatcher: dispatcher });
+</code></pre><p>It is useful to define your action names as “constants” for easy reference
+throughout your application:</p>
+<pre><code><span class="hljs-keyword">var</span> actions = Miniflux.Enum(<span class="hljs-string">'ADD_TODO'</span>);
+</code></pre><p>Then, in your views, you can dispatch an action:</p>
+<pre><code>document.getElementById(&#39;new-item-form&#39;).addEventListener(&#39;submit, function(e) {
+  e.preventDefault();
+  var title = document.getElementById(&#39;item-input&#39;).value;
+  dispatcher.handleViewAction({ action: actions.ADD_TODO, title: title });
+}, false);
+</code></pre><p>The dispatched action will be distributed by the Dispatcher through all
+stores which will in turn update the views.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+<span class="hljs-pi">  "use strict"</span>;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>Library version number</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">var</span> version = <span class="hljs-string">'0.1.0'</span>;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <h2 id="helper-functions">Helper functions</h2>
+<h3 id="inheritence-helper-function">Inheritence helper function</h3>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Provide the inheritence mechanism for <code>Store</code> and <code>Dispatcher</code> to make
+“subclasses” by setting up the right prototype chain.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">var</span> inherit = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(protoProps)</span> </span>{
+    <span class="hljs-keyword">var</span> parent = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">var</span> child = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> parent.apply(<span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span>); };
+    extend(child, parent);
+    <span class="hljs-keyword">var</span> Ghost = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">this</span>.constructor = child; };
+    Ghost.prototype = parent.prototype;
+    child.prototype = <span class="hljs-keyword">new</span> Ghost();
+    extend(child.prototype, protoProps);
+    child.__super__ = parent.prototype;
+    <span class="hljs-keyword">return</span> child;
+  };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Standard <code>extend</code> function to copy properties from one or more objects
+into a target object. The first argument is the target object that
+receives new properties; any other arguments are source objects whose
+properties will be copied.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">var</span> extend = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(obj)</span> </span>{
+    <span class="hljs-keyword">var</span> source, prop;
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">1</span>; i &lt;= <span class="hljs-built_in">arguments</span>.length; i++) {
+      source = <span class="hljs-built_in">arguments</span>[i];
+      <span class="hljs-keyword">for</span>(prop <span class="hljs-keyword">in</span> source) {
+        <span class="hljs-keyword">if</span>(source.hasOwnProperty(prop)) {
+          obj[prop] = source[prop];
+        }
+      }
+    }
+    <span class="hljs-keyword">return</span> obj;
+  };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>Take a constant name in screaming snake case (e.g. “MY_ACTION”) and
+transform it into the name of a callback function in camel case (e.g.
+“onMyAction”).</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">var</span> actionNameToCallbackName = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(action_name)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-string">'on'</span> + action_name.toLowerCase().replace(<span class="hljs-regexp">/(^|_)(.)/g</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">return</span> <span class="hljs-built_in">arguments</span>[<span class="hljs-number">2</span>].toUpperCase();
+    });
+  };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <h2 id="store">Store</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Constructor to build a new Store object. The store handles state in the
+application and registers itself with the given dispatcher to listen to
+actions in the system. It can then act on those actions as it sees fit —
+probably by triggering changes in the application view layer.</p>
+<p>The constructor takes an <code>options</code> object that is expected to have a
+<code>dispatcher</code> attribute that it can call <code>register</code> on.</p>
+<p>When a dispatcher is passed in, we immediately register ourselves with it
+and track our <code>dispatchId</code> which other stores can use to indicate they
+want to wait for operations in this store to finish before running their
+own callbacks.</p>
+<p>You can use a standard Dispatcher instance as-is, but it is recommended
+to subclass it for further customization using <code>Store.extend</code>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Store</span><span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">if</span>(!options.dispatcher || !options.dispatcher.register) {
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Store(...): required option `dispatcher` is missing'</span>);
+    }
+    <span class="hljs-keyword">this</span>.dispatchId = options.dispatcher.register(<span class="hljs-keyword">this</span>.handleCallback.bind(<span class="hljs-keyword">this</span>));
+    <span class="hljs-keyword">this</span>.initialize.apply(<span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span>);
+  }
+
+  extend(Store.prototype, {</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>The default initializer is a no-op function but you can override it in
+your subclasses. It takes the same arguments as the constructor
+function.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    initialize: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{},</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Optional action source to filter on. If you override this attribute in your
+subclass you can let your store only respond to actions of a certain source.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    source: <span class="hljs-literal">null</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Callback handler that is registered with the dispatcher. This function handles
+delegating the incoming dispatched action to appropriately named functions in
+the store. For example, an incoming action called “CREATE_POST” will call
+a function “onCreatePost” if it exists.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    handleCallback: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(payload)</span> </span>{
+      <span class="hljs-keyword">var</span> source = payload.source;
+      <span class="hljs-keyword">var</span> action = payload.action;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>We assume a callback payload always has a <code>source</code> attribute.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span>(!source) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Store.handleCallback(...): payload does not have a valid `source` attribute'</span>);
+      }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>…and an <code>action</code> that has the actually dispatched payload.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span>(!action) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Store.handleCallback(...): payload does not have a valid `action` attribute'</span>);
+      }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>Only continue if the source of the incoming action matches our <code>source</code> filter.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.source &amp;&amp; <span class="hljs-keyword">this</span>.source !== payload.source) {
+        <span class="hljs-keyword">return</span>;
+      }
+
+      <span class="hljs-keyword">var</span> callbackName = actionNameToCallbackName(action.action);
+
+      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>[callbackName]) {
+        <span class="hljs-keyword">this</span>[callbackName](action);
+      }
+    }
+  });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <h2 id="dispatcher">Dispatcher</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>The Dispatcher constructor sets up a new object to distribute events
+through the system. It ensures all events are run only once, and no new
+dispatches can be started while another is still running. It even allows
+listeners to indicate they want to wait for other listeners to complete
+before they themselves continue.</p>
+<p>You can use a standard Dispatcher instance as-is, but it is recommended to
+subclass it for further customization using <code>Dispatcher.extend</code>.</p>
+<p>The Dispatcher is basically the same as the one in Facebook’s Flux example.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Dispatcher</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.callbacks = [];
+    <span class="hljs-keyword">this</span>.isPending = [];
+    <span class="hljs-keyword">this</span>.isHandled = [];
+    <span class="hljs-keyword">this</span>.pendingPayload = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.isDispatching = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">this</span>.initialize.apply(<span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span>);
+  }
+
+  extend(Dispatcher.prototype, {</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Subclasses can provide a custom initialization funtion. The default is a
+no-op.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    initialize: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <h3 id="public-api">Public API</h3>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Register a new callback function to listen for actions. The callback
+will be called for every event and has to decide for itself whether it
+wants to react to it. It returns a unique ID that other registered
+functions could use to identify this listener when using the <code>waitFor</code>
+function.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    register: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(callback)</span> </span>{
+      <span class="hljs-keyword">this</span>.callbacks.push(callback);
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.callbacks.length - <span class="hljs-number">1</span>;
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>Dispatch a new action throughout the system. This will lock the
+dispatcher while the action propagates with the given payload.
+Registered listeners will be invoked with the given payload and can use
+<code>waitFor</code> if they want to wait for other listeners to run before
+continuing themselves.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    dispatch: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(payload)</span> </span>{
+      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.isDispatching) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Dispatcher.dispatch(...): cannot dispatch in the middle of a dispatch'</span>);
+      }
+      <span class="hljs-keyword">this</span>.startDispatching(payload);
+      <span class="hljs-keyword">try</span> {
+        <span class="hljs-keyword">this</span>.callbacks.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(callback, i)</span> </span>{
+          <span class="hljs-keyword">if</span>(!<span class="hljs-keyword">this</span>.isPending[i]) {
+            <span class="hljs-keyword">this</span>.invokeCallback(i);
+          }
+        }.bind(<span class="hljs-keyword">this</span>));
+      } <span class="hljs-keyword">finally</span> {
+        <span class="hljs-keyword">this</span>.stopDispatching(payload);
+      }
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <p>Use <code>waitFor</code> inside a listener function to indicate you want to wait
+for other listener functions to run before you continue. It does not
+make sense to use this function outside of a dispatching cycle.</p>
+<p>If two listeners end up waiting for each other an error will be thrown.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    waitFor: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(ids)</span> </span>{
+      <span class="hljs-keyword">if</span>(!<span class="hljs-keyword">this</span>.isDispatching) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Dispatcher.waitFor(...): must be invoked while dispatching'</span>);
+      }
+      <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; ids.length; i++) {
+        <span class="hljs-keyword">var</span> id = ids[i];
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.isPending[id]) {
+          <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.isHandled[id]) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Dispatcher.waitFor(...): Circular dependency detected while waiting for `'</span> + id + <span class="hljs-string">'`'</span>);
+          }
+          <span class="hljs-keyword">continue</span>;
+        }
+        <span class="hljs-keyword">if</span>(!<span class="hljs-keyword">this</span>.callbacks[id]) {
+          <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Dispatcher.waitFor(...): `'</span> + id + <span class="hljs-string">'` does not map to a registered callback'</span>);
+        }
+        <span class="hljs-keyword">this</span>.invokeCallback(id);
+      }
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <h3 id="private-api">Private API</h3>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <p>Run a callback function, tracking it as running.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    invokeCallback: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(index)</span> </span>{
+      <span class="hljs-keyword">this</span>.isPending[index] = <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">this</span>.callbacks[index](<span class="hljs-keyword">this</span>.pendingPayload);
+      <span class="hljs-keyword">this</span>.isHandled[index] = <span class="hljs-literal">true</span>;
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              <p>Prepare for invoking listeners by resetting our state.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    startDispatching: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(payload)</span> </span>{
+      <span class="hljs-keyword">this</span>.callbacks.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(callback, id)</span> </span>{
+        <span class="hljs-keyword">this</span>.isPending[id] = <span class="hljs-literal">false</span>;
+        <span class="hljs-keyword">this</span>.isHandled[id] = <span class="hljs-literal">false</span>;
+      }.bind(<span class="hljs-keyword">this</span>));
+      <span class="hljs-keyword">this</span>.pendingPayload = payload;
+      <span class="hljs-keyword">this</span>.isDispatching = <span class="hljs-literal">true</span>;
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <p>Round up the dispatch process.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    stopDispatching: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">this</span>.pendingPayload = <span class="hljs-literal">null</span>;
+      <span class="hljs-keyword">this</span>.isDispatching = <span class="hljs-literal">false</span>;
+    }
+  });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              <h2 id="enum">Enum</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <p>Helper function to define an enum using an object with mirrored
+keys and values.</p>
+<p>For example:</p>
+<pre><code><span class="hljs-keyword">var</span> constants = Enum(<span class="hljs-string">'FOO'</span>)
+constants.FOO # =&gt; <span class="hljs-string">'FOO'</span>
+</code></pre><p>The <code>Enum</code> is useful for defining action names as constants in your
+system.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">var</span> Enum = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">var</span> result = {};
+    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-built_in">arguments</span>.length; i++) {
+      <span class="hljs-keyword">var</span> name = <span class="hljs-built_in">arguments</span>[i];
+      result[name] = name;
+    }
+    <span class="hljs-keyword">return</span> result;
+  };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <p>Add the inheritence ability to the <code>Store</code> and <code>Dispatcher</code>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  Store.extend = Dispatcher.extend = inherit;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <h2 id="public-api">Public API</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
+              </div>
+              <p>We quite naively export a global <code>Miniflux</code> object with our <code>Store</code>,
+<code>Dispatcher</code> and <code>Enum</code> functions as well as our version number.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">window</span>.Miniflux = {
+    Store: Store,
+    Dispatcher: Dispatcher,
+    Enum: Enum,
+    version: version
+  };
+}());</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>
