@@ -11,42 +11,50 @@ You can easily read the [annotated source code][] for all the details.
 
 Create a dispatcher for the application to handle your events:
 
-    var AppDispatcher = Miniflux.Dispatcher.extend({
-      handleViewAction: function(payload) {
-        this.dispatch({
-          source: 'VIEW',
-          action: payload
-        });
-      }
+```js
+var AppDispatcher = Miniflux.Dispatcher.extend({
+  handleViewAction: function(payload) {
+    this.dispatch({
+      source: 'VIEW',
+      action: payload
     });
-    var dispatcher = new AppDispatcher();
+  }
+});
+var dispatcher = new AppDispatcher();
+```
 
 Create a store to track your application state:
 
-    var TodoStore = Miniflux.Store.extend({
-      initialize: function() {
-        this.items = [];
-      },
+```js
+var TodoStore = Miniflux.Store.extend({
+  initialize: function() {
+    this.items = [];
+  },
 
-      onAddTodo: function(payload) {
-        this.items.push(payload.title);
-        // update view somehow
-      }
-    });
-    var todoStore = new TodoStore({ dispatcher: dispatcher });
+  onAddTodo: function(payload) {
+    this.items.push(payload.title);
+    // update view somehow
+  }
+});
+var todoStore = new TodoStore({ dispatcher: dispatcher });
+```
 
 It is useful to define your action names as "constants" for easy reference
 throughout your application:
 
-    var actions = Miniflux.Enum('ADD_TODO');
+```js
+var actions = Miniflux.Enum('ADD_TODO');
+```
 
 Then, in your views, you can dispatch an action:
 
-    document.getElementById('new-item-form').addEventListener('submit, function(e) {
-      e.preventDefault();
-      var title = document.getElementById('item-input').value;
-      dispatcher.handleViewAction({ action: actions.ADD_TODO, title: title });
-    }, false);
+```js
+document.getElementById('new-item-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var title = document.getElementById('item-input').value;
+  dispatcher.handleViewAction({ action: actions.ADD_TODO, title: title });
+}, false);
+```
 
 The dispatched action will be distributed by the Dispatcher through all
 stores which will in turn update the views.
